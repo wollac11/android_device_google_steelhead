@@ -56,17 +56,16 @@ typedef enum supported_cards {
 
 #define TAS5713_GET_MASTER_VOLUME 0x800141f8
 #define TAS5713_SET_MASTER_VOLUME 0x400141f9
-
-#define TUNGSTEN_TAS5713_ALLOWED	"tungsten.tas5713.allowed"
-#define TUNGSTEN_SPDIF_ALLOWED		"tungsten.spdif.allowed"
-#define TUNGSTEN_SPDDIF_AUDIO_DELAY	"tungsten.spdif.audio_delay"
-#define TUNGSTEN_SPDIF_FIXED_VOLUME	"tungsten.spdif.fixed_volume"
-#define TUNGSTEN_SPDIF_FIXED_LEVEL	"tungsten.spdif.fixed_level"
-#define TUNGSTEN_HDMI_AUDIO_ALLOWED	"tungsten.hdmi_audio.allowed"
-#define TUNGSTEN_HDMI_AUDIO_DELAY	"tungsten.hdmi.audio_delay"
-#define TUNGSTEN_HDMI_FIXED_VOLUME	"tungsten.hdmi.fixed_volume"
-#define TUNGSTEN_HDMI_FIXED_LEVEL	"tungsten.hdmi.fixed_level"
-#define TUNGSTEN_VIDEO_DELAY_COMP	"tungsten.video.delay_comp"
+#define TUNGSTEN_TAS5713_ALLOWED    "tungsten.tas5713.allowed"
+#define TUNGSTEN_SPDIF_ALLOWED      "tungsten.spdif.allowed"
+#define TUNGSTEN_SPDDIF_AUDIO_DELAY "tungsten.spdif.audio_delay"
+#define TUNGSTEN_SPDIF_FIXED_VOLUME "tungsten.spdif.fixed_volume"
+#define TUNGSTEN_SPDIF_FIXED_LEVEL  "tungsten.spdif.fixed_level"
+#define TUNGSTEN_HDMI_AUDIO_ALLOWED "tungsten.hdmi_audio.allowed"
+#define TUNGSTEN_HDMI_AUDIO_DELAY   "tungsten.hdmi.audio_delay"
+#define TUNGSTEN_HDMI_FIXED_VOLUME  "tungsten.hdmi.fixed_volume"
+#define TUNGSTEN_HDMI_FIXED_LEVEL   "tungsten.hdmi.fixed_level"
+#define TUNGSTEN_VIDEO_DELAY_COMP   "tungsten.video.delay_comp"
 
 #define ABE_BASE_FRAME_COUNT 24
 /* number of base blocks in a short period (low latency) */
@@ -142,7 +141,6 @@ struct tungsten_stream_out {
     pthread_mutex_t lock;       /* see note below on mutex acquisition order */
     struct pcm_config config;
     struct pcm *pcm;
-    struct pcm *pcmspdif;
     struct resampler_itfe *resampler;
     char *buffer;
     int standby;
@@ -195,16 +193,13 @@ static int start_output_stream(struct tungsten_stream_out *out)
     LOGFUNC("%s(%p) devices=%x", __FUNCTION__, adev, adev->devices);
 
     out->config.rate = DEFAULT_OUT_SAMPLING_RATE;
+
     out->write_threshold = PLAYBACK_PERIOD_COUNT * LONG_PERIOD_SIZE;
     out->config.start_threshold = SHORT_PERIOD_SIZE * 2;
     out->config.avail_min = LONG_PERIOD_SIZE,
+
     out->pcm = pcm_open(out->dev->card, port, PCM_OUT | PCM_MMAP, &out->config);
 
-    if (out->pcmspdif != NULL && !pcm_is_ready(out->pcmspdif)) {
-        ALOGE("cannot open spdif pcm_out driver: %s", pcm_get_error(out->pcmspdif));
-        pcm_close(out->pcmspdif);
-        out->pcmspdif = NULL;
-    }
     if (!pcm_is_ready(out->pcm)) {
         ALOGE("cannot open pcm_out driver: %s", pcm_get_error(out->pcm));
         adev->card_fd = 0;
